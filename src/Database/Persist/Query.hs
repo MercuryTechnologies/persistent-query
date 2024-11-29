@@ -2,7 +2,7 @@ module Database.Persist.Query
   ( QueryPart (..),
     runQueryPart,
     Query (..),
-    interesting,
+    queryCheckpoint,
     queryWith,
     query,
     querySingle,
@@ -81,7 +81,7 @@ runRawSql mkSql = do
   let (sqlText, params) = mkSql sqlBackend
   P.rawSql sqlText params
 
--- | Whenever you use @interesting q@ and there is a @HasCallStack@ in scope,
+-- | Whenever you use @queryCheckpoint q@ and there is a @HasCallStack@ in scope,
 -- any @unexpected@s in the query @q@ will get the current call site included
 -- in the stack trace.
 --
@@ -89,7 +89,7 @@ runRawSql mkSql = do
 --
 -- @
 --   topLevelQuery :: HasCallStack => Query Oops Int
---   topLevelQuery = interesting $ do
+--   topLevelQuery = queryCheckpoint $ do
 --     x <- subQuery1
 --     y <- subQuery2
 --     pure (x + y)
@@ -97,8 +97,8 @@ runRawSql mkSql = do
 --
 -- any @Oops@ coming from @subQuery1@ or @subQuery2@ will include in its
 -- stack trace the name @topLevelQuery@ and the location of its caller.
-interesting :: HasCallStack => Query e t -> Query e t
-interesting q = Query $ \end run -> unQuery q (pushCaller callStack end) run
+queryCheckpoint :: HasCallStack => Query e t -> Query e t
+queryCheckpoint q = Query $ \end run -> unQuery q (pushCaller callStack end) run
   where
     pushCaller ::
       CallStack ->
@@ -106,7 +106,7 @@ interesting q = Query $ \end run -> unQuery q (pushCaller callStack end) run
       (CallStack -> e -> m r)
     pushCaller thisCStack k = \finalCStack -> k (maybePushCallStack (getCaller thisCStack) finalCStack)
 
-    -- If the caller of @interesting@ put @HasCallStack@ then it should be the
+    -- If the caller of @queryCheckpoint@ put @HasCallStack@ then it should be the
     -- second frame from the top.
     getCaller :: CallStack -> Maybe ([Char], SrcLoc)
     getCaller cstack = case getCallStack cstack of
@@ -222,7 +222,7 @@ getRecord ::
   Query Error record
 getRecord theId =
   fmap E.entityVal
-    -- Make sure the getRecord call is the end of the call satck (single
+    -- Make sure the getRecord call is the end of the call stack (single
     -- uses HasCallStack too)
     -- Could also use withFrozenCallStack to the same end.
     <$> exceptionAt (const callStack) . exceptionAs exceptionHandler
