@@ -45,12 +45,17 @@ test-suite test
       test
   build-depends:
       base ==4.*
+    , containers
+    , esqueleto
     , hedgehog
     , hedgehog-quickcheck
     , persistent
     , persistent-query
     , persistent-sqlite
     , text
+    , transformers
     , mmorph
-  other-modules: Database.Persist.QueryTest
+  other-modules: Database.Persist.Query.WithErrorTest
+                 Test.Models
+                 Test.Utils
   default-language: GHC2021

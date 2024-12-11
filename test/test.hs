@@ -1,6 +1,6 @@
 import System.IO (BufferMode(..), hSetBuffering, stdout, stderr)
 
-import qualified Database.Persist.QueryTest
+import qualified Database.Persist.Query.WithErrorTest
 
 main :: IO ()
 main = do
@@ -8,17 +8,7 @@ main = do
   hSetBuffering stderr LineBuffering
 
   _results <- sequence [
-       Database.Persist.QueryTest.tests
-    -- , Test.Example.Confidence.tests
-    -- , Test.Example.Coverage.tests
-    -- , Test.Example.EvalNF.tests
-    -- , Test.Example.Exception.tests
-    -- , Test.Example.QuickCheck.tests
-    -- , Test.Example.References.tests
-    -- , Test.Example.Registry.tests
-    -- , Test.Example.Resource.tests
-    -- , Test.Example.Roundtrip.tests
-    -- , Test.Example.STLC.tests
+       Database.Persist.Query.WithErrorTest.tests
     ]
 
   --

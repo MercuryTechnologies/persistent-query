@@ -12,13 +12,11 @@ module Database.Persist.Query.WithError
   )
 where
 
-import Data.Coerce (Coercible)
 import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty qualified as NE
 import Database.Persist.Query.Common
 import Database.Persist.Query.Types
 import Database.Esqueleto.Experimental qualified as E
-import Data.UUID (UUID)
 import GHC.Stack
 import Prelude
 
@@ -52,7 +50,7 @@ oneOrNone moreThanOneRowError lst = case lst of
 -- | Get a single Entity, with @Error@
 getRecord ::
   forall e record.
-  (HasCallStack, E.PersistEntity record, Coercible UUID (E.Key record)) =>
+  (HasCallStack, E.PersistEntity record) =>
   e ->
   e ->
   E.Key record ->
