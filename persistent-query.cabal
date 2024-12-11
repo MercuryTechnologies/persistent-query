@@ -35,3 +35,24 @@ library
                       uuid
     hs-source-dirs:   src
     default-language: GHC2021
+
+test-suite test
+  type: exitcode-stdio-1.0
+  main-is: test.hs
+  hs-source-dirs:
+      test
+  build-depends:
+      base ==4.*
+    , esqueleto
+    , hedgehog
+    , hedgehog-quickcheck
+    , persistent
+    , persistent-query
+    , persistent-sqlite
+    , text
+    , transformers
+    , monad-logger
+    , resourcet
+    , mmorph
+  other-modules: Database.Persist.QueryTest
+  default-language: GHC2021
