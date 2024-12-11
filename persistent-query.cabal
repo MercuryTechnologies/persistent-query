@@ -18,8 +18,10 @@ common warnings
 library
     import:           warnings
     exposed-modules:  Database.Persist.Query
+                      Database.Persist.Query.Common
                       Database.Persist.Query.Types
                       Database.Persist.Query.TH
+                      Database.Persist.Query.WithError
     -- other-modules:
     -- other-extensions:
     build-depends:    base,
@@ -43,16 +45,12 @@ test-suite test
       test
   build-depends:
       base ==4.*
-    , esqueleto
     , hedgehog
     , hedgehog-quickcheck
     , persistent
     , persistent-query
     , persistent-sqlite
     , text
-    , transformers
-    , monad-logger
-    , resourcet
     , mmorph
   other-modules: Database.Persist.QueryTest
   default-language: GHC2021
