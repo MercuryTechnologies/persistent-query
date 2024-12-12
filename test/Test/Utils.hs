@@ -25,7 +25,7 @@ testQuery = testQueryWithInit (pure ())
 testQueryWithInit :: (forall m. MonadIO m => P.SqlPersistT m ()) -> Q.Query e t -> PropertyT IO (Either e t)
 testQueryWithInit initialization q = liftIO $ P.runSqlite ":memory:" $ do
   _ <- P.runMigrationQuiet testMigrations
-  -- Need the table without primary key to simluate patholgoical behavior of duplicate keys
+  -- Need the table without primary key to simluate pathological behavior of duplicate keys
   P.rawExecute "DROP TABLE test_table;" []
   P.rawExecute "CREATE TABLE test_table (id INTEGER NOT NULL, value INTEGER);" []
   initialization
