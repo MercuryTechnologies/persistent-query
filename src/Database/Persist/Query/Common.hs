@@ -29,16 +29,11 @@ import Control.Monad (ap)
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Except (runExceptT, throwE)
 import Control.Monad.Trans.Reader as Reader (Reader, ask, runReader)
-import Data.Coerce (Coercible)
-import Data.List.NonEmpty (NonEmpty)
-import Data.List.NonEmpty qualified as NE
 import Data.Text (Text)
-import Database.Persist.Query.Types
 import Database.Esqueleto.Internal.Internal as E (SqlSelect)
 import Database.Esqueleto.Experimental qualified as E
 import Database.Persist qualified as P
 import Database.Persist.Sql qualified as P
-import Data.UUID (UUID)
 import GHC.Stack
 import Prelude
 
@@ -152,11 +147,11 @@ querySingle q = do
     _ -> Nothing
 
 -- | Check that no results exist. Uses @SELECT ... LIMIT 1@ instead of @NOT EXISTS@.
-notExists :: E.SqlQuery a -> Query e Bool
+notExists :: forall e a. E.SqlQuery a -> Query e Bool
 notExists q = queryWith null (q >> E.limit 1)
 
 -- | Check if a result exists. Uses @SELECT ... LIMIT 1@ instead of @EXISTS@.
-exists :: E.SqlQuery a -> Query e Bool
+exists :: forall e a. E.SqlQuery a -> Query e Bool
 exists q = not <$> notExists q
 
 -- | Use a read-only persistent action as a query.
@@ -171,18 +166,18 @@ first lst = case lst of
   [] -> Nothing
   r : _ -> Just r
 
-withDefault :: r -> Maybe r -> Query e r
+withDefault :: forall e r. r -> Maybe r -> Query e r
 withDefault def = pure . fromMaybe def
 
 -- | @Nothing@ if the result is empty else @Just r@ where @r@ is the first record.
-maybeOne :: [r] -> Query e (Maybe r)
+maybeOne :: forall e r. [r] -> Query e (Maybe r)
 maybeOne lst = case lst of
   r : _rs -> pure (Just r)
   [] -> pure Nothing
 
 -- | Get the first record that has this field as this value.
 getFirstRecordByField ::
-  forall record field err.
+  forall err record field.
   (E.PersistEntity record, E.PersistField field) =>
   E.EntityField record field ->
   field ->
