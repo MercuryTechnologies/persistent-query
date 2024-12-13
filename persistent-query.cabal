@@ -57,6 +57,7 @@ test-suite test
     , mmorph
   other-modules: Database.Persist.Query.WithErrorTest
                  Database.Persist.Query.CommonTest
+                 Database.Persist.Query.CommonCallStackTest
                  Test.Models
                  Test.Utils
   default-language: GHC2021

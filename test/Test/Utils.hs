@@ -9,6 +9,7 @@ import Data.Void (absurd)
 import Database.Esqueleto.Experimental qualified as E (insertEntityMany)
 import Database.Persist.Query.Common qualified as Q
 import Database.Persist.Sqlite qualified as P
+import GHC.Stack
 import Hedgehog
 import Hedgehog.Gen qualified as Gen
 import Hedgehog.Range qualified as Range
@@ -24,12 +25,21 @@ testQuery = testQueryWithInit (pure ())
 
 testQueryWithInit :: (forall m. MonadIO m => P.SqlPersistT m ()) -> Q.Query e t -> PropertyT IO (Either e t)
 testQueryWithInit initialization q = liftIO $ P.runSqlite ":memory:" $ do
+  querySetup
+  initialization
+  Q.unQuery (Q.withException q) (const absurd) (hoist liftIO <$> Q.runQueryPart)
+
+testQueryWithStackTrace :: Q.Query e t -> PropertyT IO (Either ([CallStack], e) t)
+testQueryWithStackTrace q = liftIO $ P.runSqlite ":memory:" $ do
+  querySetup
+  Q.unQuery (Q.withExceptionAndStackTrace q) (const absurd) (hoist liftIO <$> Q.runQueryPart)
+
+querySetup :: forall m. MonadIO m => P.SqlPersistT m ()
+querySetup = do
   _ <- P.runMigrationQuiet testMigrations
   -- Need the table without primary key to simluate pathological behavior of duplicate keys
   P.rawExecute "DROP TABLE test_table;" []
   P.rawExecute "CREATE TABLE test_table (id INTEGER NOT NULL, value INTEGER);" []
-  initialization
-  Q.unQuery (Q.withException q) (const absurd) (hoist liftIO <$> Q.runQueryPart)
 
 emptyList :: [Int]
 emptyList = []
