@@ -213,4 +213,6 @@ stackTraceTops = foldr (f . getCallStack) emptyCallStack
   where
     f [] finalCallStack = finalCallStack
     f [fromStackTraceList] finalCallStack = pushCallStack fromStackTraceList finalCallStack
+    -- If the caller of @queryCheckpoint@ put @HasCallStack@ then it should be the
+    -- second frame from the top.
     f (_ : fromStackTraceList : _) finalCallStack = pushCallStack fromStackTraceList finalCallStack
