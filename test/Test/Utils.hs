@@ -39,7 +39,7 @@ querySetup = do
   _ <- P.runMigrationQuiet testMigrations
   -- Need the table without primary key to simluate pathological behavior of duplicate keys
   P.rawExecute "DROP TABLE test_table;" []
-  P.rawExecute "CREATE TABLE test_table (id INTEGER NOT NULL, value INTEGER);" []
+  P.rawExecute "CREATE TABLE test_table (id INTEGER NOT NULL, val INTEGER, val2 INTEGER);" []
 
 emptyList :: [Int]
 emptyList = []
@@ -51,12 +51,14 @@ genListElement = Gen.int (Range.linear 0 100)
 genList :: Int -> Int -> Gen [Int]
 genList minElements maxElements = Gen.list (Range.linear minElements maxElements) genListElement
 
+-- | Unique list of ints from 1..(10 * maxElements).
+-- Use id 0 if you want to search for something not in the list
 genUniqueList :: Int -> Int -> Gen [Int]
 genUniqueList minElements maxElements =
-  Set.toList <$> Gen.set (Range.linear minElements maxElements) (Gen.int Range.constantBounded)
+  Set.toList <$> Gen.set (Range.linear minElements maxElements) (Gen.int $ Range.linear 1 (10 * maxElements))
 
 populateTestTable :: [Int] -> MonadIO m => P.SqlPersistT m ()
 populateTestTable ids = E.insertEntityMany (map createEntity ids)
   where
-    createEntity id = P.Entity (TestTableKey id) TestTable
+    createEntity id = P.Entity (TestTableKey id) (TestTable id 0)
 

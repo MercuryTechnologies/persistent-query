@@ -102,7 +102,7 @@ prop_getRecord_oneRow = property $ do
   actual <- testQueryWithInit
     (populateTestTable xs)
     (Q.getRecord NoRows MoreThanOneRow (TestTableKey x))
-  diff actual (==) (Right TestTable)
+  diff actual (==) (Right $ TestTable x 0)
 
 prop_getRecord_tooManyRows :: Property
 prop_getRecord_tooManyRows = property $ do
