@@ -83,24 +83,24 @@ runRawSql mkSql = do
 -- any @Oops@ coming from @subQuery1@ or @subQuery2@ will include in its
 -- stack trace the name @topLevelQuery@ and the location of its caller.
 queryCheckpoint :: HasCallStack => Query e t -> Query e t
-queryCheckpoint q = Query $ \end run -> unQuery q (pushCaller callStack end) run
+queryCheckpoint q = Query $ \end run -> unQuery q (pushCaller [callStack] end) run
   where
     pushCaller ::
-      CallStack ->
-      (CallStack -> e -> m r) ->
-      (CallStack -> e -> m r)
-    pushCaller thisCStack k = \finalCStack -> k (maybePushCallStack (getCaller thisCStack) finalCStack)
+      [CallStack] ->
+      ([CallStack] -> e -> m r) ->
+      ([CallStack] -> e -> m r)
+    pushCaller thisCStack k = \finalCStack -> k (finalCStack ++ thisCStack)
 
-    -- If the caller of @queryCheckpoint@ put @HasCallStack@ then it should be the
-    -- second frame from the top.
-    getCaller :: CallStack -> Maybe ([Char], SrcLoc)
-    getCaller cstack = case getCallStack cstack of
-      _:caller:_ -> Just caller
-      _ -> Nothing
+    -- -- If the caller of @queryCheckpoint@ put @HasCallStack@ then it should be the
+    -- -- second frame from the top.
+    -- getCaller :: CallStack -> Maybe ([Char], SrcLoc)
+    -- getCaller cstack = case getCallStack cstack of
+    --   _:caller:_ -> Just caller
+    --   _ -> Nothing
 
-    maybePushCallStack :: Maybe ([Char], SrcLoc) -> CallStack -> CallStack
-    maybePushCallStack Nothing = id
-    maybePushCallStack (Just frame) = pushCallStack frame
+    -- maybePushCallStack :: Maybe ([Char], SrcLoc) -> CallStack -> CallStack
+    -- maybePushCallStack Nothing = id
+    -- maybePushCallStack (Just frame) = pushCallStack frame
 
 -- | A monad in which there are 0 or more SqlQuery parts, and the possibility for
 -- early termination.
@@ -114,7 +114,7 @@ queryCheckpoint q = Query $ \end run -> unQuery q (pushCaller callStack end) run
 newtype Query e t = Query
   { unQuery :: forall m.
       Monad m =>
-      (forall r. CallStack -> e -> m r) ->
+      (forall r. [CallStack] -> e -> m r) ->
       (forall r. QueryPart r -> m r) ->
       m t
   }
@@ -193,7 +193,7 @@ unexpected :: HasCallStack => e -> Query e anything
 unexpected = unexpectedAt callStack
 
 unexpectedAt :: CallStack -> e -> Query e anything
-unexpectedAt cstack e = Query $ \end _ -> end (topOfStack cstack) e
+unexpectedAt cstack e = Query $ \end _ -> end [topOfStack cstack] e
   where
   -- Take the top of the stack, because the whole stack might contain parts of
   -- the Query's stack (cstack')
@@ -203,7 +203,7 @@ unexpectedAt cstack e = Query $ \end _ -> end (topOfStack cstack) e
 exceptionAs :: (e -> e') -> Query e t -> Query e' t
 exceptionAs k (Query q) = Query $ \end run -> q (\cstack -> end cstack . k) run
 
-exceptionAt :: (CallStack -> CallStack) -> Query e t -> Query e t
+exceptionAt :: ([CallStack] -> [CallStack]) -> Query e t -> Query e t
 exceptionAt k (Query q) = Query $ \end run -> q (\cstack -> end (k cstack)) run
 
 --  Discard Query exception
@@ -214,6 +214,6 @@ withException :: Query e t -> Query void (Either e t)
 withException (Query q) = Query $ \_end run ->
   runExceptT (q (\_cstack -> throwE) (lift . run))
 
-withExceptionAndStackTrace :: Query e t -> Query void (Either (CallStack, e) t)
+withExceptionAndStackTrace :: Query e t -> Query void (Either ([CallStack], e) t)
 withExceptionAndStackTrace (Query q) = Query $ \_end run ->
   runExceptT (q (\cstack e -> throwE (cstack, e)) (lift . run))

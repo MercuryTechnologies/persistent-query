@@ -60,7 +60,7 @@ getRecord noRowsError moreThanOneRowError theId =
     -- Make sure the getRecord call is the end of the call stack (single
     -- uses HasCallStack too)
     -- Could also use withFrozenCallStack to the same end.
-    <$> exceptionAt (const callStack)
+    <$> exceptionAt (const [callStack])
     $ single noRowsError moreThanOneRowError
       =<< ( query $ do
               t <- E.from $ E.table @record
