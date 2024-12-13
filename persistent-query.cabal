@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               persistent-query
-version:            0.1.0.0
+version:            0.2.0.0
 -- synopsis:
 -- description:
 license:            NONE
@@ -18,8 +18,10 @@ common warnings
 library
     import:           warnings
     exposed-modules:  Database.Persist.Query
+                      Database.Persist.Query.Common
                       Database.Persist.Query.Types
                       Database.Persist.Query.TH
+                      Database.Persist.Query.WithError
     -- other-modules:
     -- other-extensions:
     build-depends:    base,
@@ -35,3 +37,25 @@ library
                       uuid
     hs-source-dirs:   src
     default-language: GHC2021
+
+test-suite test
+  type: exitcode-stdio-1.0
+  main-is: test.hs
+  hs-source-dirs:
+      test
+  build-depends:
+      base ==4.*
+    , containers
+    , esqueleto
+    , hedgehog
+    , hedgehog-quickcheck
+    , persistent
+    , persistent-query
+    , persistent-sqlite
+    , text
+    , transformers
+    , mmorph
+  other-modules: Database.Persist.Query.WithErrorTest
+                 Test.Models
+                 Test.Utils
+  default-language: GHC2021
