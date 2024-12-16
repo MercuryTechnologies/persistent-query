@@ -55,13 +55,12 @@ getRecord ::
   e ->
   E.Key record ->
   Query e record
-getRecord noRowsError moreThanOneRowError theId =
+getRecord noRowsError moreThanOneRowError theId = withFrozenCallStack $
   fmap E.entityVal
     -- Make sure the getRecord call is the end of the call stack (single
     -- uses HasCallStack too)
     -- Could also use withFrozenCallStack to the same end.
-    <$> exceptionAt (const callStack)
-    $ single noRowsError moreThanOneRowError
+    <$> single noRowsError moreThanOneRowError
       =<< ( query $ do
               t <- E.from $ E.table @record
               E.where_ $ t E.^. E.persistIdField E.==. E.val theId

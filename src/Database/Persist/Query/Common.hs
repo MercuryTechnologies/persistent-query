@@ -20,6 +20,8 @@ module Database.Persist.Query.Common
     exceptionAt,
     withException,
     withExceptionAndStackTrace,
+    QueryStackTrace,
+    stackTraceTops,
     E.SqlSelect,
   )
 where
@@ -29,16 +31,11 @@ import Control.Monad (ap)
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Except (runExceptT, throwE)
 import Control.Monad.Trans.Reader as Reader (Reader, ask, runReader)
-import Data.Coerce (Coercible)
-import Data.List.NonEmpty (NonEmpty)
-import Data.List.NonEmpty qualified as NE
 import Data.Text (Text)
-import Database.Persist.Query.Types
 import Database.Esqueleto.Internal.Internal as E (SqlSelect)
 import Database.Esqueleto.Experimental qualified as E
 import Database.Persist qualified as P
 import Database.Persist.Sql qualified as P
-import Data.UUID (UUID)
 import GHC.Stack
 import Prelude
 
@@ -71,6 +68,8 @@ runRawSql mkSql = do
   let (sqlText, params) = mkSql sqlBackend
   P.rawSql sqlText params
 
+type QueryStackTrace = [CallStack]
+
 -- | Whenever you use @queryCheckpoint q@ and there is a @HasCallStack@ in scope,
 -- any @unexpected@s in the query @q@ will get the current call site included
 -- in the stack trace.
@@ -92,20 +91,9 @@ queryCheckpoint q = Query $ \end run -> unQuery q (pushCaller callStack end) run
   where
     pushCaller ::
       CallStack ->
-      (CallStack -> e -> m r) ->
-      (CallStack -> e -> m r)
-    pushCaller thisCStack k = \finalCStack -> k (maybePushCallStack (getCaller thisCStack) finalCStack)
-
-    -- If the caller of @queryCheckpoint@ put @HasCallStack@ then it should be the
-    -- second frame from the top.
-    getCaller :: CallStack -> Maybe ([Char], SrcLoc)
-    getCaller cstack = case getCallStack cstack of
-      _:caller:_ -> Just caller
-      _ -> Nothing
-
-    maybePushCallStack :: Maybe ([Char], SrcLoc) -> CallStack -> CallStack
-    maybePushCallStack Nothing = id
-    maybePushCallStack (Just frame) = pushCallStack frame
+      (QueryStackTrace -> e -> m r) ->
+      (QueryStackTrace -> e -> m r)
+    pushCaller thisCStack k = \finalCStack -> k (thisCStack : finalCStack)
 
 -- | A monad in which there are 0 or more SqlQuery parts, and the possibility for
 -- early termination.
@@ -119,7 +107,7 @@ queryCheckpoint q = Query $ \end run -> unQuery q (pushCaller callStack end) run
 newtype Query e t = Query
   { unQuery :: forall m.
       Monad m =>
-      (forall r. CallStack -> e -> m r) ->
+      (forall r. QueryStackTrace -> e -> m r) ->
       (forall r. QueryPart r -> m r) ->
       m t
   }
@@ -152,11 +140,11 @@ querySingle q = do
     _ -> Nothing
 
 -- | Check that no results exist. Uses @SELECT ... LIMIT 1@ instead of @NOT EXISTS@.
-notExists :: E.SqlQuery a -> Query e Bool
+notExists :: forall e a. E.SqlQuery a -> Query e Bool
 notExists q = queryWith null (q >> E.limit 1)
 
 -- | Check if a result exists. Uses @SELECT ... LIMIT 1@ instead of @EXISTS@.
-exists :: E.SqlQuery a -> Query e Bool
+exists :: forall e a. E.SqlQuery a -> Query e Bool
 exists q = not <$> notExists q
 
 -- | Use a read-only persistent action as a query.
@@ -171,18 +159,18 @@ first lst = case lst of
   [] -> Nothing
   r : _ -> Just r
 
-withDefault :: r -> Maybe r -> Query e r
+withDefault :: forall e r. r -> Maybe r -> Query e r
 withDefault def = pure . fromMaybe def
 
 -- | @Nothing@ if the result is empty else @Just r@ where @r@ is the first record.
-maybeOne :: [r] -> Query e (Maybe r)
+maybeOne :: forall e r. [r] -> Query e (Maybe r)
 maybeOne lst = case lst of
   r : _rs -> pure (Just r)
   [] -> pure Nothing
 
 -- | Get the first record that has this field as this value.
 getFirstRecordByField ::
-  forall record field err.
+  forall err record field.
   (E.PersistEntity record, E.PersistField field) =>
   E.EntityField record field ->
   field ->
@@ -198,17 +186,12 @@ unexpected :: HasCallStack => e -> Query e anything
 unexpected = unexpectedAt callStack
 
 unexpectedAt :: CallStack -> e -> Query e anything
-unexpectedAt cstack e = Query $ \end _ -> end (topOfStack cstack) e
-  where
-  -- Take the top of the stack, because the whole stack might contain parts of
-  -- the Query's stack (cstack')
-  topOfStack :: CallStack -> CallStack
-  topOfStack = fromCallSiteList . take 1 . getCallStack
+unexpectedAt cstack e = Query $ \end _ -> end [cstack] e
 
 exceptionAs :: (e -> e') -> Query e t -> Query e' t
 exceptionAs k (Query q) = Query $ \end run -> q (\cstack -> end cstack . k) run
 
-exceptionAt :: (CallStack -> CallStack) -> Query e t -> Query e t
+exceptionAt :: (QueryStackTrace -> QueryStackTrace) -> Query e t -> Query e t
 exceptionAt k (Query q) = Query $ \end run -> q (\cstack -> end (k cstack)) run
 
 --  Discard Query exception
@@ -219,6 +202,17 @@ withException :: Query e t -> Query void (Either e t)
 withException (Query q) = Query $ \_end run ->
   runExceptT (q (\_cstack -> throwE) (lift . run))
 
-withExceptionAndStackTrace :: Query e t -> Query void (Either (CallStack, e) t)
+withExceptionAndStackTrace :: Query e t -> Query void (Either (QueryStackTrace, e) t)
 withExceptionAndStackTrace (Query q) = Query $ \_end run ->
   runExceptT (q (\cstack e -> throwE (cstack, e)) (lift . run))
+
+
+-- | Will return the functions in our call path that use `queryCheckpoint` or the terminal function.
+stackTraceTops :: QueryStackTrace -> CallStack
+stackTraceTops = foldr (f . getCallStack) emptyCallStack
+  where
+    f [] finalCallStack = finalCallStack
+    f [fromStackTraceList] finalCallStack = pushCallStack fromStackTraceList finalCallStack
+    -- If the caller of @queryCheckpoint@ put @HasCallStack@ then it should be the
+    -- second frame from the top.
+    f (_ : fromStackTraceList : _) finalCallStack = pushCallStack fromStackTraceList finalCallStack

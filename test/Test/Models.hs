@@ -16,6 +16,8 @@ import Database.Persist.TH
 share [mkPersist sqlSettings, mkMigrate "testMigrations"] [persistLowerCase|
 TestTable
     Id Int
+    val Int
+    val2 Int
     value
     deriving Eq Show
 |]
