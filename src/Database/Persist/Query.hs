@@ -3,7 +3,6 @@ module Database.Persist.Query
     single,
     atLeastOne,
     firstOfMany,
-    atLeastOne_,
     oneOrNone,
     getRecord,
     Error (..),
@@ -34,9 +33,6 @@ atLeastOne = QWE.atLeastOne NoRows
 -- | Like 'atLeastOne' but only the first one is given.
 firstOfMany :: HasCallStack => [r] -> Query Error r
 firstOfMany = QWE.firstOfMany NoRows
-
-atLeastOne_ :: HasCallStack => [r] -> Query Error r
-atLeastOne_ = firstOfMany
 
 -- | Zero or one row, returning an error if there are more than one.
 oneOrNone :: HasCallStack => [r] -> Query Error (Maybe r)

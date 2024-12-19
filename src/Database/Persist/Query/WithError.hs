@@ -3,7 +3,6 @@ module Database.Persist.Query.WithError
     single,
     atLeastOne,
     firstOfMany,
-    atLeastOne_,
     oneOrNone,
     getRecord,
     Error (..),
@@ -36,9 +35,6 @@ firstOfMany :: HasCallStack => e -> [r] -> Query e r
 firstOfMany noRowsError lst = case lst of
   [] -> unexpectedAt callStack noRowsError
   (x : _) -> pure x
-
-atLeastOne_ :: HasCallStack => e -> [r] -> Query e r
-atLeastOne_ = firstOfMany
 
 -- | Zero or one row, returning an error if there are more than one.
 oneOrNone :: HasCallStack => e -> [r] -> Query e (Maybe r)
