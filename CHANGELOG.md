@@ -1,5 +1,6 @@
 # Revision history for persistent-query
 
-## 0.1.0.0 -- 2024-10-18
+## 0.2.1.0 -- 2025-03-05
 
-* First version. Ported from mercury-web-backend
+* Defined queryOne
+
