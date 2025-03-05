@@ -137,7 +137,7 @@ query = queryWith id
 --
 -- Analogous to selectOne from esquleto.
 queryOne :: E.SqlSelect a r => E.SqlQuery a -> Query e (Maybe r)
-queryOne body = fmap listToMaybe $ query $ E.limit 1 >> body
+queryOne body = queryWith listToMaybe $ E.limit 1 >> body
 
 -- | Like 'queryOne' but also gives @Nothing@ if there is more than one
 -- result. Addes a limit of 2 to the query.
