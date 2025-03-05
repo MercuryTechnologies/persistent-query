@@ -5,6 +5,7 @@ module Database.Persist.Query.Common
     queryCheckpoint,
     queryWith,
     query,
+    queryAtLeastOne,
     querySingle,
     exists,
     notExists,
@@ -131,7 +132,17 @@ queryWith k q = Query $ \_ run -> run (QueryPart q k)
 query :: E.SqlSelect a r => E.SqlQuery a -> Query e [r]
 query = queryWith id
 
--- | Like 'single', but does not raise an error and appends @LIMIT 2@ to the query.
+-- | Gives @Just@ if there is at least one result, @Nothing@ if there are no
+-- results. Adds a limit of 2 to the query.
+queryAtLeastOne :: E.SqlSelect a r => E.SqlQuery a -> Query e (Maybe r)
+queryAtLeastOne q = do
+  rs <- query (q <* E.limit 1)
+  pure $ case rs of
+    x:_ -> Just x
+    [] -> Nothing
+
+-- | Like 'queryAtLeastOne' but also gives @Nothing@ if there is more than one
+-- result. Addes a limit of 2 to the query.
 querySingle :: E.SqlSelect a r => E.SqlQuery a -> Query e (Maybe r)
 querySingle q = do
   rs <- query (q <* E.limit 2)
