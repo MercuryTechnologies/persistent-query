@@ -5,7 +5,7 @@ module Database.Persist.Query.Common
     queryCheckpoint,
     queryWith,
     query,
-    queryAtLeastOne,
+    queryOne,
     querySingle,
     exists,
     notExists,
@@ -27,7 +27,7 @@ module Database.Persist.Query.Common
   )
 where
 
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, listToMaybe)
 import Control.Monad (ap)
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Except (runExceptT, throwE)
@@ -134,14 +134,12 @@ query = queryWith id
 
 -- | Gives @Just@ if there is at least one result, @Nothing@ if there are no
 -- results. Adds a limit of 1 to the query.
-queryAtLeastOne :: E.SqlSelect a r => E.SqlQuery a -> Query e (Maybe r)
-queryAtLeastOne q = do
-  rs <- query (q <* E.limit 1)
-  pure $ case rs of
-    x:_ -> Just x
-    [] -> Nothing
+--
+-- Analogous to selectOne from esquleto.
+queryOne :: E.SqlSelect a r => E.SqlQuery a -> Query e (Maybe r)
+queryOne body = fmap listToMaybe $ query $ E.limit 1 >> body
 
--- | Like 'queryAtLeastOne' but also gives @Nothing@ if there is more than one
+-- | Like 'queryOne' but also gives @Nothing@ if there is more than one
 -- result. Addes a limit of 2 to the query.
 querySingle :: E.SqlSelect a r => E.SqlQuery a -> Query e (Maybe r)
 querySingle q = do
