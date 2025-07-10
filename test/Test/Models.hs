@@ -18,7 +18,6 @@ TestTable
     Id Int
     val Int
     val2 Int
-    value
     deriving Eq Show
 |]
 
