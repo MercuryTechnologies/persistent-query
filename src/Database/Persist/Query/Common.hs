@@ -135,7 +135,10 @@ query = queryWith id
 -- | Gives @Just@ if there is at least one result, @Nothing@ if there are no
 -- results. Adds a limit of 1 to the query.
 --
--- Analogous to selectOne from esquleto.
+-- Adapted from Esqueleto's selectOne, licensed under BSD-3-Clause,
+-- copyright (c) 2012, Felipe Lessa. See licenses/esqueleto-BSD-3-Clause.txt
+-- for the full upstream notice.
+-- Upstream: https://github.com/bitemyapp/esqueleto/commit/33128042c42fd413e0ccae6f97896b96061d895e
 queryOne :: E.SqlSelect a r => E.SqlQuery a -> Query e (Maybe r)
 queryOne body = queryWith listToMaybe $ E.limit 1 >> body
 

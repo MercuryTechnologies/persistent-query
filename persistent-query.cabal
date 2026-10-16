@@ -3,7 +3,11 @@ name:               persistent-query
 version:            0.2.1.0
 -- synopsis:
 -- description:
-license:            NONE
+-- Original code is Apache-2.0; adapted portions retain their upstream licenses.
+license:            Apache-2.0 AND MIT AND BSD-3-Clause
+license-files:      LICENSE
+                    licenses/persistent-qq-MIT.txt
+                    licenses/esqueleto-BSD-3-Clause.txt
 author:             Alexander Vieth
 maintainer:         alexv@mercury.com
 -- copyright:

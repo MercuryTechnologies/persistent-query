@@ -11,6 +11,10 @@
 -- This module is mostly copied from Database.Persist.Sql.Raw.QQ but extends
 -- that quoter with an Input {{x}} substituter, which takes input.x from
 -- whatever input is given.
+--
+-- The adapted portions are licensed under MIT, copyright (c) 2012 Michael
+-- Snoyman. See licenses/persistent-qq-MIT.txt for the full upstream notice.
+-- Upstream: https://github.com/yesodweb/persistent/tree/f3dab2277585e8fd97d674fb923b9998e431c963/persistent-qq
 module Database.Persist.Query.TH
   ( RawSql (..),
     Single (..),
